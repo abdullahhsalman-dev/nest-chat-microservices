@@ -3,7 +3,6 @@ import {
   Get,
   Param,
   UseGuards,
-  Request,
   HttpException,
   HttpStatus,
   Inject,
@@ -13,6 +12,20 @@ import { firstValueFrom } from 'rxjs';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SERVICES } from '../../../../libs/common/src/constants/microservices';
 
+// Define interfaces for response types
+interface UserStatusResponse {
+  success: boolean;
+  status?: string;
+  lastSeen?: number;
+  message?: string;
+}
+
+interface OnlineUsersResponse {
+  success: boolean;
+  users?: string[];
+  message?: string;
+}
+
 @Controller('presence')
 export class PresenceController {
   constructor(
@@ -21,13 +34,21 @@ export class PresenceController {
 
   @UseGuards(JwtAuthGuard)
   @Get('users/:userId/status')
-  async getUserStatus(@Param('userId') userId: string) {
-    const response = await firstValueFrom(
-      this.presenceClient.send({ cmd: 'get_user_status' }, userId),
+  async getUserStatus(
+    @Param('userId') userId: string,
+  ): Promise<UserStatusResponse> {
+    const response = await firstValueFrom<UserStatusResponse>(
+      this.presenceClient.send<UserStatusResponse, string>(
+        { cmd: 'get_user_status' },
+        userId,
+      ),
     );
 
     if (!response.success) {
-      throw new HttpException(response.message, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        response.message || 'Failed to get user status',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     return response;
@@ -35,13 +56,19 @@ export class PresenceController {
 
   @UseGuards(JwtAuthGuard)
   @Get('users/online')
-  async getOnlineUsers() {
-    const response = await firstValueFrom(
-      this.presenceClient.send({ cmd: 'get_online_users' }, {}),
+  async getOnlineUsers(): Promise<OnlineUsersResponse> {
+    const response = await firstValueFrom<OnlineUsersResponse>(
+      this.presenceClient.send<OnlineUsersResponse, Record<string, never>>(
+        { cmd: 'get_online_users' },
+        {},
+      ),
     );
 
     if (!response.success) {
-      throw new HttpException(response.message, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        response.message || 'Failed to get online users',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     return response;

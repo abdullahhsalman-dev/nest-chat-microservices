@@ -10,7 +10,11 @@ export const UserSchema = new mongoose.Schema({
 });
 
 UserSchema.pre('save', async function (next) {
-  const user = this;
+  const user = this as unknown as {
+    password: string;
+    isModified: (path: string) => boolean;
+  };
+
   if (!user.isModified('password')) return next();
 
   try {
