@@ -5,7 +5,7 @@ import { NotificationGateway } from './notification.gateway';
 export class NotificationService {
   constructor(private readonly notificationGateway: NotificationGateway) {}
 
-  async sendMessageNotification(data: {
+  sendMessageNotification(data: {
     messageId: string;
     senderId: string;
     receiverId: string;
@@ -27,7 +27,7 @@ export class NotificationService {
     return { success: true };
   }
 
-  async sendPresenceNotification(data: {
+  sendPresenceNotification(data: {
     userId: string;
     username?: string;
     status: 'online' | 'offline';

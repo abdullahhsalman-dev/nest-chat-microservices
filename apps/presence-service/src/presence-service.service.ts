@@ -108,7 +108,7 @@ export class PresenceService {
     const users = await redis.smembers(this.USERS_KEY);
 
     // Filter online users
-    const onlineUsers = [];
+    const onlineUsers: string[] = [];
 
     for (const userId of users) {
       const status = await redis.get(`${this.USER_STATUS_PREFIX}${userId}`);

@@ -8,6 +8,7 @@ import {
   EVENTS,
   SERVICES,
 } from '../../../libs/common/src/constants/microservices';
+import { AppException } from '../../../libs/common/src/exceptions/app.exception';
 
 @Injectable()
 export class ChatService {
@@ -40,7 +41,24 @@ export class ChatService {
         message: message,
       };
     } catch (error) {
-      return { success: false, message: error.message };
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          message: error.message,
+          code: error.code,
+        };
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      } else {
+        // Handle cases where error is neither AppException nor Error
+        return {
+          success: false,
+          message: 'An unknown error occurred',
+        };
+      }
     }
   }
 
@@ -61,7 +79,24 @@ export class ChatService {
         messages,
       };
     } catch (error) {
-      return { success: false, message: error.message };
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          message: error.message,
+          code: error.code,
+        };
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      } else {
+        // Handle cases where error is neither AppException nor Error
+        return {
+          success: false,
+          message: 'An unknown error occurred',
+        };
+      }
     }
   }
 
@@ -95,7 +130,24 @@ export class ChatService {
         conversations: Array.from(conversations.values()),
       };
     } catch (error) {
-      return { success: false, message: error.message };
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          message: error.message,
+          code: error.code,
+        };
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      } else {
+        // Handle cases where error is neither AppException nor Error
+        return {
+          success: false,
+          message: 'An unknown error occurred',
+        };
+      }
     }
   }
 
@@ -119,7 +171,24 @@ export class ChatService {
         message: 'Message marked as read',
       };
     } catch (error) {
-      return { success: false, message: error.message };
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          message: error.message,
+          code: error.code,
+        };
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      } else {
+        // Handle cases where error is neither AppException nor Error
+        return {
+          success: false,
+          message: 'An unknown error occurred',
+        };
+      }
     }
   }
 }
