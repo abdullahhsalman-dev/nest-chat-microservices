@@ -1,8 +1,16 @@
 import { NestFactory } from '@nestjs/core';
-import { PresenceServiceModule } from './presence-service.module';
+import { Transport } from '@nestjs/microservices';
+import { PresenceModule } from './presence-service.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(PresenceServiceModule);
-  await app.listen(process.env.port ?? 3000);
+  const app = await NestFactory.createMicroservice(PresenceModule, {
+    transport: Transport.TCP,
+    options: {
+      host: 'localhost',
+      port: 3002,
+    },
+  });
+  await app.listen();
+  console.log('Presence service is listening');
 }
 bootstrap();

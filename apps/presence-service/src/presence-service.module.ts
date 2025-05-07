@@ -1,10 +1,25 @@
 import { Module } from '@nestjs/common';
-import { PresenceServiceController } from './presence-service.controller';
-import { PresenceServiceService } from './presence-service.service';
+import { RedisModule } from './redis/redis.module';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { PresenceController } from './presence-service.controller';
+import { PresenceService } from './presence-service.service';
+import { SERVICES } from '../../../libs/common/src/constants/microservices';
 
 @Module({
-  imports: [],
-  controllers: [PresenceServiceController],
-  providers: [PresenceServiceService],
+  imports: [
+    RedisModule,
+    ClientsModule.register([
+      {
+        name: SERVICES.NOTIFICATION_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          host: 'localhost',
+          port: 3004,
+        },
+      },
+    ]),
+  ],
+  controllers: [PresenceController],
+  providers: [PresenceService],
 })
-export class PresenceServiceModule {}
+export class PresenceModule {}

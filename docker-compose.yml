@@ -1,0 +1,100 @@
+# docker-compose.yml
+version: '3'
+
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - chat-network
+
+  redis:
+    image: redis:latest
+    ports:
+      - '6379:6379'
+    networks:
+      - chat-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+    ports:
+      - '3000:3000'
+    depends_on:
+      - auth-service
+      - chat-service
+      - presence-service
+      - notification-service
+    networks:
+      - chat-network
+    environment:
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_PORT=3001
+      - CHAT_SERVICE_HOST=chat-service
+      - CHAT_SERVICE_PORT=3003
+      - PRESENCE_SERVICE_HOST=presence-service
+      - PRESENCE_SERVICE_PORT=3002
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=3004
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./apps/auth-service/Dockerfile
+    depends_on:
+      - mongodb
+    networks:
+      - chat-network
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/chat-auth
+      - PRESENCE_SERVICE_HOST=presence-service
+      - PRESENCE_SERVICE_PORT=3002
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=3004
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: ./apps/chat-service/Dockerfile
+    depends_on:
+      - mongodb
+    networks:
+      - chat-network
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/chat-messages
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=3004
+
+  presence-service:
+    build:
+      context: .
+      dockerfile: ./apps/presence-service/Dockerfile
+    depends_on:
+      - redis
+    networks:
+      - chat-network
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=3004
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./apps/notification-service/Dockerfile
+    ports:
+      - '3005:3005'
+    networks:
+      - chat-network
+
+networks:
+  chat-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
