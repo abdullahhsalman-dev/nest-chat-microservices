@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Error, Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { ClientProxy } from '@nestjs/microservices';
 import * as bcrypt from 'bcrypt';
@@ -11,7 +11,14 @@ import {
   EVENTS,
   SERVICES,
 } from '../../../libs/common/src/constants/microservices';
-
+import { AppException } from '../../../libs/common/src/exceptions/app.exception';
+interface JwtPayload {
+  sub: string; // Subject (user ID)
+  username: string; // Username
+  email: string; // Email
+  iat?: number; // Issued at timestamp
+  exp?: number; // Expiration timestamp
+}
 @Injectable()
 export class AuthService {
   constructor(
@@ -45,7 +52,24 @@ export class AuthService {
         message: 'User registered successfully',
       };
     } catch (error) {
-      return { success: false, message: error.message };
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          message: error.message,
+          code: error.code,
+        };
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      } else {
+        // Handle cases where error is neither AppException nor Error
+        return {
+          success: false,
+          message: 'An unknown error occurred',
+        };
+      }
     }
   }
 
@@ -91,13 +115,30 @@ export class AuthService {
         },
       };
     } catch (error) {
-      return { success: false, message: error.message };
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          message: error.message,
+          code: error.code,
+        };
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      } else {
+        // Handle cases where error is neither AppException nor Error
+        return {
+          success: false,
+          message: 'An unknown error occurred',
+        };
+      }
     }
   }
 
   async validateToken(token: string) {
     try {
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify<JwtPayload>(token);
       const user = await this.userModel.findById(payload.sub);
 
       if (!user) {
@@ -113,7 +154,24 @@ export class AuthService {
         },
       };
     } catch (error) {
-      return { success: false, message: 'Invalid token' };
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          message: error.message,
+          code: error.code,
+        };
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      } else {
+        // Handle cases where error is neither AppException nor Error
+        return {
+          success: false,
+          message: 'An unknown error occurred',
+        };
+      }
     }
   }
 }
