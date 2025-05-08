@@ -1,3 +1,4 @@
+// apps/api-gateway/src/chat/chat.controller.ts
 import {
   Controller,
   Get,
@@ -12,8 +13,20 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateMessageDto } from '../../../../libs/common/src/dto/create-message.dto';
+import {
+  SendMessageResponseDto,
+  ConversationResponseDto,
+} from '../../../../libs/common/src/dto/responses/message-responses.dto';
 import { SERVICES } from '../../../../libs/common/src/constants/microservices';
 import { Message } from '../../../../libs/common/src/interfaces/message.interface';
 
@@ -27,10 +40,10 @@ interface RequestWithUser extends Request {
 }
 
 // Define response interfaces
-interface MessageResponse {
-  success: boolean;
-  message: Message | string;
-}
+// interface MessageResponse {
+//   success: boolean;
+//   message: Message | string;
+// }
 
 interface ConversationResponse {
   success: boolean;
@@ -52,19 +65,36 @@ interface MarkAsReadResponse {
   message: string;
 }
 
+@ApiTags('chat')
+@ApiBearerAuth('JWT-auth')
 @Controller('chat')
 export class ChatController {
   constructor(@Inject(SERVICES.CHAT_SERVICE) private chatClient: ClientProxy) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('messages')
+  @ApiOperation({ summary: 'Send a new message to another user' })
+  @ApiBody({ type: CreateMessageDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Message successfully sent',
+    type: SendMessageResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid message data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token is missing or invalid',
+  })
   async sendMessage(
     @Request() req: RequestWithUser,
     @Body() createMessageDto: CreateMessageDto,
-  ): Promise<MessageResponse> {
-    const response = await firstValueFrom<MessageResponse>(
+  ): Promise<SendMessageResponseDto> {
+    const response = await firstValueFrom<SendMessageResponseDto>(
       this.chatClient.send<
-        MessageResponse,
+        SendMessageResponseDto,
         { userId: string; createMessageDto: CreateMessageDto }
       >({ cmd: 'send_message' }, { userId: req.user.userId, createMessageDto }),
     );
@@ -83,6 +113,25 @@ export class ChatController {
 
   @UseGuards(JwtAuthGuard)
   @Get('conversations/:userId')
+  @ApiOperation({ summary: 'Get conversation history with another user' })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID of the user to get conversation with',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversation retrieved successfully',
+    type: ConversationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid user ID',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token is missing or invalid',
+  })
   async getConversation(
     @Request() req: RequestWithUser,
     @Param('userId') otherUserId: string,
@@ -106,6 +155,16 @@ export class ChatController {
 
   @UseGuards(JwtAuthGuard)
   @Get('conversations')
+  @ApiOperation({ summary: 'Get recent conversations with all users' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recent conversations retrieved successfully',
+    type: ConversationResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token is missing or invalid',
+  })
   async getRecentConversations(
     @Request() req: RequestWithUser,
   ): Promise<ConversationsResponse> {
@@ -128,6 +187,25 @@ export class ChatController {
 
   @UseGuards(JwtAuthGuard)
   @Post('messages/:messageId/read')
+  @ApiOperation({ summary: 'Mark a message as read' })
+  @ApiParam({
+    name: 'messageId',
+    description: 'ID of the message to mark as read',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Message marked as read successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Bad Request - Invalid message ID or unauthorized to mark this message',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token is missing or invalid',
+  })
   async markAsRead(
     @Request() req: RequestWithUser,
     @Param('messageId') messageId: string,

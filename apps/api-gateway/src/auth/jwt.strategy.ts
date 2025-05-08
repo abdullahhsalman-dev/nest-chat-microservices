@@ -1,8 +1,10 @@
+// apps/api-gateway/src/auth/jwt.strategy.ts
 import { Injectable, Inject } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { ConfigService } from '../config/config.service';
 import { SERVICES } from '../../../../libs/common/src/constants/microservices';
 
 // Define the JWT payload interface
@@ -34,11 +36,14 @@ interface UserInfo {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(@Inject(SERVICES.AUTH_SERVICE) private authClient: ClientProxy) {
+  constructor(
+    @Inject(SERVICES.AUTH_SERVICE) private authClient: ClientProxy,
+    private configService: ConfigService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: 'secretKey', // In production, use environment variables
+      secretOrKey: configService.jwtSecret,
     });
   }
 

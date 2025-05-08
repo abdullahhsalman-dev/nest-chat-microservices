@@ -9,10 +9,21 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  UserStatusResponseDto,
+  OnlineUsersResponseDto,
+} from '../../../../libs/common/src/dto/responses/presence-responses.dto';
 import { SERVICES } from '../../../../libs/common/src/constants/microservices';
 
-// Define interfaces for response types
+// Define request user interface
 interface UserStatusResponse {
   success: boolean;
   status?: string;
@@ -26,6 +37,8 @@ interface OnlineUsersResponse {
   message?: string;
 }
 
+@ApiTags('presence')
+@ApiBearerAuth('JWT-auth')
 @Controller('presence')
 export class PresenceController {
   constructor(
@@ -34,9 +47,28 @@ export class PresenceController {
 
   @UseGuards(JwtAuthGuard)
   @Get('users/:userId/status')
+  @ApiOperation({ summary: 'Get online/offline status of a user' })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID of the user to get status for',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User status retrieved successfully',
+    type: UserStatusResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid user ID or user not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token is missing or invalid',
+  })
   async getUserStatus(
     @Param('userId') userId: string,
-  ): Promise<UserStatusResponse> {
+  ): Promise<UserStatusResponseDto> {
     const response = await firstValueFrom<UserStatusResponse>(
       this.presenceClient.send<UserStatusResponse, string>(
         { cmd: 'get_user_status' },
@@ -51,12 +83,34 @@ export class PresenceController {
       );
     }
 
-    return response;
+    if (!response.status || response.lastSeen === undefined) {
+      throw new HttpException(
+        'User status or last seen missing in response',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Explicitly construct a UserStatusResponseDto-compatible object
+    return {
+      success: response.success,
+      status: response.status,
+      lastSeen: response.lastSeen,
+    };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('users/online')
-  async getOnlineUsers(): Promise<OnlineUsersResponse> {
+  @ApiOperation({ summary: 'Get list of all online users' })
+  @ApiResponse({
+    status: 200,
+    description: 'Online users list retrieved successfully',
+    type: OnlineUsersResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token is missing or invalid',
+  })
+  async getOnlineUsers(): Promise<OnlineUsersResponseDto> {
     const response = await firstValueFrom<OnlineUsersResponse>(
       this.presenceClient.send<OnlineUsersResponse, Record<string, never>>(
         { cmd: 'get_online_users' },
@@ -71,6 +125,17 @@ export class PresenceController {
       );
     }
 
-    return response;
+    if (!response.users) {
+      throw new HttpException(
+        'Online users list missing in response',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Explicitly construct an OnlineUsersResponseDto-compatible object
+    return {
+      success: response.success,
+      users: response.users,
+    };
   }
 }
