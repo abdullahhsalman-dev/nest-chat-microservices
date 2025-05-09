@@ -9,13 +9,21 @@ import { SERVICES } from '../../../libs/common/src/constants/microservices';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/chat-auth'),
+    MongooseModule.forRoot('mongodb://mongodb:27017/chat-auth'),
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
     JwtModule.register({
       secret: 'secretKey', // In production, use environment variables
       signOptions: { expiresIn: '1h' },
     }),
     ClientsModule.register([
+      {
+        name: SERVICES.AUTH_SERVICE, // Register the AuthService here
+        transport: Transport.TCP,
+        options: {
+          host: 'localhost', // Or update with the correct host, if necessary
+          port: 3001, // Port for AUTH_SERVICE, ensure it matches
+        },
+      },
       {
         name: SERVICES.PRESENCE_SERVICE,
         transport: Transport.TCP,
@@ -35,6 +43,9 @@ import { SERVICES } from '../../../libs/common/src/constants/microservices';
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [
+    AuthService,
+    // Add other necessary services here
+  ],
 })
 export class AuthModule {}

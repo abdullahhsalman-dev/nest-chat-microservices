@@ -8,7 +8,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     this.redisClient = new Redis({
       host: 'localhost',
-      port: 6379,
+      port: 6380,
     });
 
     await this.redisClient.ping();

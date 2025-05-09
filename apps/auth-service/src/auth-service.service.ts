@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Error, Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { ClientProxy } from '@nestjs/microservices';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { User } from '../../../libs/common/src/interfaces/user.interface';
 import { CreateUserDto } from '../../../libs/common/src/dto/create-user.dto';
 import { LoginUserDto } from '../../../libs/common/src/dto/login-user.dto';

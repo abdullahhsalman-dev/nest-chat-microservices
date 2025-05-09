@@ -8,7 +8,7 @@ import { SERVICES } from '../../../libs/common/src/constants/microservices';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/chat-messages'),
+    MongooseModule.forRoot('mongodb://mongodb:27017/chat-messages'),
     MongooseModule.forFeature([{ name: 'Message', schema: MessageSchema }]),
     ClientsModule.register([
       {
