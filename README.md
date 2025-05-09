@@ -197,3 +197,59 @@ Event-Based Communication: For notifications and status updates, we use an event
 Data Storage: MongoDB for persistent data (users, messages) and Redis for ephemeral data (presence)
 Real-time Updates: Socket.IO for delivering notifications to connected clients
 API Security: JWT-based authentication with authorization guards
+
+Purpose of API Gateway in a Microservices Architecture
+
+Single Entry Point - Provides a unified interface for clients to interact with multiple microservices
+Request Routing - Directs incoming requests to the appropriate microservice based on the route
+Authentication & Authorization - Centralizes security concerns by validating user identity before requests reach microservices
+Protocol Translation - Converts external HTTP/REST requests into internal microservice communication protocols (TCP, gRPC, etc.)
+Load Balancing - Distributes incoming requests across multiple instances of the same microservice
+Response Aggregation - Combines responses from multiple microservices into a single response for the client
+Rate Limiting - Controls the number of requests clients can make to protect backend services
+Caching - Stores frequently accessed data to reduce load on microservices
+Request/Response Transformation - Modifies requests and responses to ensure compatibility between clients and services
+API Documentation - Hosts Swagger/OpenAPI documentation for the entire system
+Circuit Breaking - Detects failing microservices and prevents cascading failures throughout the system
+Logging & Monitoring - Provides a centralized place to track all incoming requests for observability
+Cross-Cutting Concerns - Handles common functionalities like CORS, compression, and request validation
+Versioning - Manages multiple API versions and routes to appropriate service implementations
+Simplifies Client Development - Clients need to know only one endpoint instead of multiple microservice locations
+RetryClaude can make mistakes. Please double-check responses.
+
+Why Two Auth Folders Exist in Different Locations
+Having two separate auth folders (one in apps/api-gateway/src/auth and another in apps/auth-service) serves different purposes in a microservices architecture:
+api-gateway/src/auth/ folder
+
+Client-Facing Authentication Layer - Handles HTTP requests for login/register from clients
+Token Validation - Verifies JWT tokens in incoming requests using guards and strategies
+Gateway-Specific Logic - Contains code specific to the API Gateway's responsibilities
+Request Translation - Converts REST API requests into microservice messages
+Authentication Routing - Forwards authentication requests to the auth-service
+HTTP Security - Manages HTTP-specific security concerns like CORS, headers, etc.
+API Documentation - Contains Swagger annotations for authentication endpoints
+
+apps/auth-service/ folder
+
+Authentication Business Logic - Contains the core implementation of authentication features
+Database Interactions - Manages user credentials in the database
+Password Hashing - Handles secure storage of passwords
+Token Generation - Creates and signs JWT tokens
+User Management - Contains user creation, verification, and profile management
+Microservice Implementation - Exposes functionality through microservice transport (TCP)
+Independent Deployment - Can be deployed and scaled separately from the API Gateway
+
+This separation follows the microservices pattern where:
+
+API Gateway handles client communication, routing, and protocol translation
+Auth Service contains the actual business logic and data access
+
+This design provides several advantages:
+
+Separation of Concerns - Each component has clear, distinct responsibilities
+Independent Scaling - The auth service can be scaled based on authentication load
+Technology Flexibility - The auth service could be implemented in a different language/framework if needed
+Focused Development - Teams can work on specific services without affecting others
+Isolation - Issues in one component don't directly impact others
+
+The API Gateway's auth folder primarily acts as a client-facing façade that delegates to the actual auth-service for processing.RetryClaude can make mistakes. Please double-check responses. 3.7 Sonnet
