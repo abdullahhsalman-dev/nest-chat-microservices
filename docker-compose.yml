@@ -9,6 +9,7 @@ services:
   # Persists data using a named volume (mongo_data)
   # Connects to the chat-network
   mongodb:
+    restart: unless-stopped
     image: mongo:latest
     ports:
       - '27017:27017'
@@ -17,7 +18,7 @@ services:
     networks:
       - chat-network
     healthcheck:
-      test: ['CMD', 'mongo', '--eval', "db.adminCommand('ping')"]
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -76,14 +77,16 @@ services:
   # Connects to the chat-network
   # Sets environment variables for database connection and other service locations
   auth-service:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: ./apps/auth-service/Dockerfile
     ports:
-      - '3001:3001' # Expose auth service port
+      - '3001:3001' # TCP microservice port
+      - '3101:3101' # HTTP port for health checks
     depends_on:
       mongodb:
-        condition: service_healthy
+        condition: service_started
     networks:
       - chat-network
     environment:
@@ -95,7 +98,7 @@ services:
       - JWT_SECRET=your_secure_jwt_secret
       - JWT_EXPIRATION=3600
     healthcheck:
-      test: ['CMD', 'wget', '--spider', 'http://localhost:3001/health']
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3101/health']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -106,7 +109,9 @@ services:
       context: .
       dockerfile: ./apps/chat-service/Dockerfile
     ports:
-      - '3003:3003' # Expose chat service port
+      - '3013:3003' # Expose chat service port
+      - '3103:3103' # HTTP port for health checks
+
     depends_on:
       mongodb:
         condition: service_healthy
@@ -117,18 +122,21 @@ services:
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
     healthcheck:
-      test: ['CMD', 'wget', '--spider', 'http://localhost:3003/health']
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3103/health']
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
 
   presence-service:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: ./apps/presence-service/Dockerfile
     ports:
-      - '3002:3002' # Expose presence service port
+      - '3012:3002' # Expose presence service port
+      - '3102:3102' # HTTP port for health checks
+
     depends_on:
       redis:
         condition: service_healthy
@@ -140,7 +148,7 @@ services:
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
     healthcheck:
-      test: ['CMD', 'wget', '--spider', 'http://localhost:3002/health']
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3102/health']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -153,10 +161,11 @@ services:
     ports:
       - '3004:3004' # Expose TCP microservice port
       - '3005:3005' # WebSocket port
+      - '3104:3104' # HTTP port for health checks
     networks:
       - chat-network
     healthcheck:
-      test: ['CMD', 'wget', '--spider', 'http://localhost:3004/health']
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3104/health']
       interval: 10s
       timeout: 5s
       retries: 5

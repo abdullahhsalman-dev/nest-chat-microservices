@@ -14,14 +14,15 @@ async function bootstrap() {
   app.connectMicroservice({
     transport: Transport.TCP,
     options: {
-      host: process.env.CHAT_SERVICE_HOST || 'localhost',
-      port: parseInt(process.env.CHAT_SERVICE_PORT || '3003', 10),
+      host: '0.0.0.0', // Listen on all interfaces
+      // host: process.env.CHAT_SERVICE_HOST || 'localhost',
+      port: parseInt(process.env.CHAT_SERVICE_PORT || '3001', 10),
     },
   });
 
   // Start both HTTP and microservice servers
   await app.startAllMicroservices();
-  await app.listen(3003);
+  await app.listen(3103);
 
   logger.log(
     `Chat service is listening on microservice transport and HTTP port 3003`,
