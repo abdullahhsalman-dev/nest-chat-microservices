@@ -1,7 +1,13 @@
 # docker-compose.yml
+# This Docker Compose file defines a multi-container
+# application for a chat system with microservices architecture. Here's a detailed breakdown:
 version: '3'
 
 services:
+  # Uses the official MongoDB image
+  # Maps container port 27017 to host port 27017
+  # Persists data using a named volume (mongo_data)
+  # Connects to the chat-network
   mongodb:
     image: mongo:latest
     ports:
@@ -11,6 +17,9 @@ services:
     networks:
       - chat-network
 
+  # Uses the official Redis image
+  # Maps Redis's internal port 6379 to host port 6380
+  # Connects to the chat-network
   redis:
     image: redis:latest
     ports:
@@ -18,6 +27,11 @@ services:
     networks:
       - chat-network
 
+  # Built from a Dockerfile in ./apps/api-gateway/
+  # Maps port 3000 to the host
+  # Depends on all other services (waits for them to start first)
+  # Connects to the chat-network
+  # Sets environment variables for connecting to other services
   api-gateway:
     build:
       context: .
@@ -41,6 +55,10 @@ services:
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
 
+  # Built from a Dockerfile in ./apps/auth-service/
+  # Depends on MongoDB
+  # Connects to the chat-network
+  # Sets environment variables for database connection and other service locations
   auth-service:
     build:
       context: .
@@ -56,6 +74,8 @@ services:
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
 
+  #Similar to auth-service but connects to a different MongoDB database
+  # Handles chat message storage and retrieval
   chat-service:
     build:
       context: .
@@ -69,6 +89,8 @@ services:
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
 
+  # Similar to auth-service but connects to a different MongoDB database
+  # Handles chat message storage and retrieval
   presence-service:
     build:
       context: .
@@ -79,7 +101,7 @@ services:
       - chat-network
     environment:
       - REDIS_HOST=redis
-      - REDIS_PORT=6380
+      - REDIS_PORT=6379
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
 
@@ -92,6 +114,9 @@ services:
     networks:
       - chat-network
 
+# Creates a bridge network named chat-network
+# All services connect to this network
+# Allows services to communicate by service name
 networks:
   chat-network:
     driver: bridge
