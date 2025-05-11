@@ -1,15 +1,25 @@
+# apps/presence-service/Dockerfile
 FROM node:20-alpine
+
+# Install wget for health check
+RUN apk add --no-cache wget
 
 WORKDIR /usr/src/app
 
+# Copy package files first for better caching
 COPY package*.json ./
 
+# Install dependencies
 RUN npm install
 
+# Copy source code
 COPY . .
 
-RUN npm run build notification-service
+# Build the application
+RUN npm run build presence-service
 
-EXPOSE 3005
+# Expose the service port
+EXPOSE 3002
 
-CMD ["node", "dist/apps/notification-service/main"]
+# Start the service
+CMD ["node", "dist/apps/presence-service/main"]

@@ -1,20 +1,25 @@
-# Use Node.js 20 Alpine as the base image
+# apps/auth-service/Dockerfile
 FROM node:20-alpine
 
-# Set the working directory inside the container
+# Install wget for health check
+RUN apk add --no-cache wget
+
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json first for dependency installation
+# Copy package files first for better caching
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
+# Copy source code
 COPY . .
 
-# Build the auth-service
+# Build the application
 RUN npm run build auth-service
 
-# Set the command to run your application
+# Expose the service port
+EXPOSE 3001
+
+# Start the service
 CMD ["node", "dist/apps/auth-service/main"]

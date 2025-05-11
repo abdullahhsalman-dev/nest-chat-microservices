@@ -16,6 +16,11 @@ services:
       - mongo_data:/data/db
     networks:
       - chat-network
+    healthcheck:
+      test: ['CMD', 'mongo', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Uses the official Redis image
   # Maps Redis's internal port 6379 to host port 6380
@@ -26,8 +31,13 @@ services:
       - '6380:6379'
     networks:
       - chat-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Built from a Dockerfile in ./apps/api-gateway/
+      # Built from a Dockerfile in ./apps/api-gateway/
   # Maps port 3000 to the host
   # Depends on all other services (waits for them to start first)
   # Connects to the chat-network
@@ -39,10 +49,14 @@ services:
     ports:
       - '3000:3000'
     depends_on:
-      - auth-service
-      - chat-service
-      - presence-service
-      - notification-service
+      auth-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+      presence-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
     networks:
       - chat-network
     environment:
@@ -54,6 +68,8 @@ services:
       - PRESENCE_SERVICE_PORT=3002
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
+      - JWT_SECRET=your_secure_jwt_secret
+      - JWT_EXPIRATION=3600
 
   # Built from a Dockerfile in ./apps/auth-service/
   # Depends on MongoDB
@@ -63,8 +79,11 @@ services:
     build:
       context: .
       dockerfile: ./apps/auth-service/Dockerfile
+    ports:
+      - '3001:3001' # Expose auth service port
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - chat-network
     environment:
@@ -73,46 +92,75 @@ services:
       - PRESENCE_SERVICE_PORT=3002
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
+      - JWT_SECRET=your_secure_jwt_secret
+      - JWT_EXPIRATION=3600
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  #Similar to auth-service but connects to a different MongoDB database
-  # Handles chat message storage and retrieval
   chat-service:
     build:
       context: .
       dockerfile: ./apps/chat-service/Dockerfile
+    ports:
+      - '3003:3003' # Expose chat service port
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - chat-network
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/chat-messages
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3003/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  # Similar to auth-service but connects to a different MongoDB database
-  # Handles chat message storage and retrieval
   presence-service:
     build:
       context: .
       dockerfile: ./apps/presence-service/Dockerfile
+    ports:
+      - '3002:3002' # Expose presence service port
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - chat-network
     environment:
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_PORT=6379 # Fixed Redis port - this should be the internal port
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3002/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   notification-service:
     build:
       context: .
       dockerfile: ./apps/notification-service/Dockerfile
     ports:
-      - '3005:3005'
+      - '3004:3004' # Expose TCP microservice port
+      - '3005:3005' # WebSocket port
     networks:
       - chat-network
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3004/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 # Creates a bridge network named chat-network
 # All services connect to this network

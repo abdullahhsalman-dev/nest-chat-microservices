@@ -253,3 +253,6 @@ Focused Development - Teams can work on specific services without affecting othe
 Isolation - Issues in one component don't directly impact others
 
 The API Gateway's auth folder primarily acts as a client-facing façade that delegates to the actual auth-service for processing.RetryClaude can make mistakes. Please double-check responses. 3.7 Sonnet
+
+- Run the startup script:
+- bash./startup.sh
