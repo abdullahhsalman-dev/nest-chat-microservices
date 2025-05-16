@@ -1,4 +1,13 @@
 // apps/api-gateway/src/auth/jwt.strategy.ts
+/**
+ * JWT Strategy for Passport authentication in the API Gateway.
+ * This file defines the JwtStrategy class, which extends PassportStrategy to handle
+ * JSON Web Token (JWT) authentication. It extracts JWTs from the Authorization header,
+ * verifies them using a secret key, and validates the token payload by communicating
+ * with an authentication microservice. The strategy is used in conjunction with the
+ * JwtAuthGuard to secure routes in the NestJS application.
+ */
+
 import { Injectable, Inject } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';

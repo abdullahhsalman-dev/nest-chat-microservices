@@ -21,6 +21,23 @@ Error Handling
 MongoDB Integration
 Redis Integration
 WebSockets
+Decorators: 
+- In NestJS, decorators are special functions that are used to attach metadata to classes, methods, properties, or parameters
+@Controller('books') // This decorator maps the route '/books'
+@Get() // GET route for fetching all books
+
+
+- Strategy: 
+The strategy pattern is useful because it allows you to define multiple algorithms (or approaches) 
+for a specific task and encapsulate them in separate classes
+Common Use Cases for Strategies in NestJS:
+Authentication: You might have different authentication strategies, such as JWT, OAuth2, or session-based authentication.
+
+Payment Processing: Different payment gateways (Stripe, PayPal, etc.) can be used based on user selection.
+
+File Uploading: You can define different file storage strategies (local storage, cloud storage, etc.) based on user configuration.
+
+
 
 
 what nest topics are uncovered.EditNestJS Topics Not Covered

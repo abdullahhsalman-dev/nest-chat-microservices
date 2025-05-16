@@ -29,6 +29,12 @@ export class AuthService {
     private notificationClient: ClientProxy,
   ) {}
 
+  //   A Mongoose User model for database operations.
+  // A JwtService for JWT token management.
+  // ClientProxy instances for the PRESENCE_SERVICE and NOTIFICATION_SERVICE microservices to emit events or send messages.
+  //  These dependencies are injected via NestJS’s dependency injection system, configured in AuthModule,
+  //  and used in methods like register, login, and validateToken.
+
   async register(createUserDto: CreateUserDto) {
     try {
       const existingUser = await this.userModel.findOne({

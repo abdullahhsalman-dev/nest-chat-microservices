@@ -12,7 +12,9 @@ import {
   Inject,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+// Uses firstValueFrom to handle asynchronous microservice responses.
 import { firstValueFrom } from 'rxjs';
+// Swagger Annotations: @ApiOperation, @ApiResponse, @ApiParam, @ApiBody provide detailed API documentation.
 import {
   ApiTags,
   ApiOperation,
@@ -71,6 +73,8 @@ interface MarkAsReadResponse {
 export class ChatController {
   constructor(@Inject(SERVICES.CHAT_SERVICE) private chatClient: ClientProxy) {}
 
+  // JWT Authentication: All endpoints are protected by @UseGuards(JwtAuthGuard)
+  // and @ApiBearerAuth('JWT-auth'), requiring valid JWT tokens
   @UseGuards(JwtAuthGuard)
   @Post('messages')
   @ApiOperation({ summary: 'Send a new message to another user' })

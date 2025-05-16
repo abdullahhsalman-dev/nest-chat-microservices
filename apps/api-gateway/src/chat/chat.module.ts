@@ -28,3 +28,8 @@ import { SERVICES } from '../../../../libs/common/src/constants/microservices';
   controllers: [ChatController],
 })
 export class ChatModule {}
+
+//  Chat Factory:
+// What is it?: The useFactory in ClientsModule.registerAsync is a factory function that creates the configuration for the CHAT_SERVICE microservice client.
+// Why?: It dynamically sets the host and port from ConfigService (chatServiceHost, chatServicePort) for TCP communication.
+// How?: Injects ConfigService to access configuration values, ensuring flexibility and environment-specific settings.

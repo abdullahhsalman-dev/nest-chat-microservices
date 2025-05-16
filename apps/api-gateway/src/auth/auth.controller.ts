@@ -1,4 +1,9 @@
-// apps/api-gateway/src/auth/auth.controller.ts
+// auth.controller.ts
+// This controller is responsible for handling authentication-related HTTP requests in the API Gateway.
+// It exposes endpoints for user registration and login. Requests are forwarded to the AuthService microservice
+// via the ClientProxy to handle the actual authentication logic. The controller also manages error handling
+// and returns appropriate responses.
+
 import {
   Controller,
   Post,
@@ -7,16 +12,26 @@ import {
   HttpStatus,
   Inject,
 } from '@nestjs/common';
+// ClientProxy: From @nestjs/microservices, used to communicate with the AuthService microservice.
 import { ClientProxy } from '@nestjs/microservices';
+// firstValueFrom: Converts an RxJS Observable (returned by ClientProxy.send) into a Promise for easier handling.
 import { firstValueFrom } from 'rxjs';
+// ApiTags, ApiOperation, ApiResponse, ApiBody: Decorators from @nestjs/swagger to generate OpenAPI (Swagger)
+// documentation for the API endpoints.
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+// CreateUserDto: Defines the structure of the request body for user registration (e.g., username, email, password).
 import { CreateUserDto } from '../../../../libs/common/src/dto/create-user.dto';
+// Defines the structure of the request body for user login (e.g., email/username, password).
 import { LoginUserDto } from '../../../../libs/common/src/dto/login-user.dto';
+// RegisterResponseDto, LoginResponseDto: Define the structure of the responses returned to the client.
 import {
   RegisterResponseDto,
   LoginResponseDto,
 } from '../../../../libs/common/src/dto/responses/auth-responses.dto';
+// A constant (likely an enum or object) from a shared library that defines
+// identifiers for microservices, including AUTH_SERVICE.
 import { SERVICES } from '../../../../libs/common/src/constants/microservices';
+
 interface RegisterResponse {
   success: boolean;
   message: string;
@@ -32,11 +47,21 @@ interface LoginResponse {
     email: string;
   };
 }
+
+// Swagger Tag: @ApiTags('auth') groups the endpoints under the "auth" category in Swagger documentation.
+// The AuthController class is decorated with @Controller('auth'), which makes it responsible for
+// handling requests under the /auth base path (e.g., /auth/register, /auth/login).
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(@Inject(SERVICES.AUTH_SERVICE) private authClient: ClientProxy) {}
 
+  // @Post('register'): Defines a POST endpoint at /auth/register.
+  // @ApiOperation: Documents the endpoint’s purpose in Swagger ("Register a new user").
+  // @ApiBody: Specifies that the request body must conform to CreateUserDto.
+  // @ApiResponse: Documents possible responses:
+  // 201 Created: Successful registration, returning a RegisterResponseDto.
+  // 400 Bad Request: Invalid data or user already exists.
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiBody({ type: CreateUserDto })
@@ -49,6 +74,7 @@ export class AuthController {
     status: 400,
     description: 'Bad Request - Invalid data or user already exists',
   })
+  // The @Body() decorator extracts the request body into a createUserDto object.
   async register(
     @Body() createUserDto: CreateUserDto,
   ): Promise<RegisterResponseDto> {
