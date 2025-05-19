@@ -53,3 +53,23 @@ export class LoginResponseDto {
   })
   user: UserDto;
 }
+
+export class GetUserResponseDto {
+  @ApiProperty({ description: 'Indicates if the request was successful' })
+  success: boolean;
+
+  @ApiProperty({
+    description: 'Error message if the request fails',
+    required: false,
+  })
+  message?: string;
+
+  @ApiProperty({ description: 'User information', required: false })
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+    isOnline: boolean;
+    lastSeen: Date;
+  };
+}

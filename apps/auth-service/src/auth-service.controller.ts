@@ -41,4 +41,10 @@ export class AuthController {
     // Delegate token validation logic to AuthService
     return this.authService.validateToken(token);
   }
+
+  @MessagePattern({ cmd: 'get_user' })
+  getUser(userId: string) {
+    // Delegate user retrieval logic to AuthService
+    return this.authService.getUser(userId);
+  }
 }

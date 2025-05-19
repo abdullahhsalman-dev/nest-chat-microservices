@@ -180,4 +180,42 @@ export class AuthService {
       }
     }
   }
+
+  async getUser(userId: string) {
+    try {
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      return {
+        success: true,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          isOnline: user.isOnline,
+          lastSeen: user.lastSeen,
+        },
+      };
+    } catch (error) {
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          message: error.message,
+          code: error.code,
+        };
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      } else {
+        return {
+          success: false,
+          message: 'An unknown error occurred',
+        };
+      }
+    }
+  }
 }
