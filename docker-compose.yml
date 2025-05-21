@@ -1,13 +1,7 @@
-# docker-compose.yml
-# This Docker Compose file defines a multi-container
-# application for a chat system with microservices architecture. Here's a detailed breakdown:
 version: '3'
 
 services:
-  # Uses the official MongoDB image
-  # Maps container port 27017 to host port 27017
-  # Persists data using a named volume (mongo_data)
-  # Connects to the chat-network
+  # MongoDB service for persistent data storage
   mongodb:
     restart: unless-stopped
     image: mongo:latest
@@ -23,9 +17,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Uses the official Redis image
-  # Maps Redis's internal port 6379 to host port 6380
-  # Connects to the chat-network
+  # Redis service for caching and presence
   redis:
     image: redis:latest
     ports:
@@ -38,11 +30,7 @@ services:
       timeout: 5s
       retries: 5
 
-      # Built from a Dockerfile in ./apps/api-gateway/
-  # Maps port 3000 to the host
-  # Depends on all other services (waits for them to start first)
-  # Connects to the chat-network
-  # Sets environment variables for connecting to other services
+  # API Gateway service
   api-gateway:
     build:
       context: .
@@ -60,6 +48,8 @@ services:
         condition: service_healthy
     networks:
       - chat-network
+    env_file:
+      - .env
     environment:
       - AUTH_SERVICE_HOST=auth-service
       - AUTH_SERVICE_PORT=3001
@@ -69,13 +59,8 @@ services:
       - PRESENCE_SERVICE_PORT=3002
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
-      - JWT_SECRET=your_secure_jwt_secret
-      - JWT_EXPIRATION=3600
 
-  # Built from a Dockerfile in ./apps/auth-service/
-  # Depends on MongoDB
-  # Connects to the chat-network
-  # Sets environment variables for database connection and other service locations
+  # Authentication service
   auth-service:
     restart: unless-stopped
     build:
@@ -89,14 +74,14 @@ services:
         condition: service_started
     networks:
       - chat-network
+    env_file:
+      - .env
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/chat-auth
       - PRESENCE_SERVICE_HOST=presence-service
       - PRESENCE_SERVICE_PORT=3002
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
-      - JWT_SECRET=your_secure_jwt_secret
-      - JWT_EXPIRATION=3600
     healthcheck:
       test: ['CMD', 'wget', '--spider', 'http://localhost:3101/health']
       interval: 10s
@@ -104,6 +89,7 @@ services:
       retries: 5
       start_period: 20s
 
+  # Chat service
   chat-service:
     build:
       context: .
@@ -111,12 +97,13 @@ services:
     ports:
       - '3013:3003' # Expose chat service port
       - '3103:3103' # HTTP port for health checks
-
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
       - chat-network
+    env_file:
+      - .env
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/chat-messages
       - NOTIFICATION_SERVICE_HOST=notification-service
@@ -128,6 +115,7 @@ services:
       retries: 5
       start_period: 20s
 
+  # Presence service
   presence-service:
     restart: unless-stopped
     build:
@@ -136,15 +124,16 @@ services:
     ports:
       - '3012:3002' # Expose presence service port
       - '3102:3102' # HTTP port for health checks
-
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - chat-network
+    env_file:
+      - .env
     environment:
       - REDIS_HOST=redis
-      - REDIS_PORT=6379 # Fixed Redis port - this should be the internal port
+      - REDIS_PORT=6379
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
     healthcheck:
@@ -154,16 +143,19 @@ services:
       retries: 5
       start_period: 20s
 
+  # Notification service
   notification-service:
     build:
       context: .
       dockerfile: ./apps/notification-service/Dockerfile
     ports:
-      - '3004:3004' # Expose TCP microservice port
+      - '3004:3004' # TCP microservice port
       - '3005:3005' # WebSocket port
       - '3104:3104' # HTTP port for health checks
     networks:
       - chat-network
+    env_file:
+      - .env
     healthcheck:
       test: ['CMD', 'wget', '--spider', 'http://localhost:3104/health']
       interval: 10s
@@ -171,9 +163,6 @@ services:
       retries: 5
       start_period: 20s
 
-# Creates a bridge network named chat-network
-# All services connect to this network
-# Allows services to communicate by service name
 networks:
   chat-network:
     driver: bridge
