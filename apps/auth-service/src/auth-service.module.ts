@@ -36,7 +36,7 @@ import { SERVICES } from '../../../libs/common/src/constants/microservices';
     // Configure JwtModule for JWT generation and verification
     JwtModule.register({
       // Set the JWT secret (fallback to 'secretKey' if not set)
-      secret: process.env.JWT_SECRET || 'secretKey',
+      secret: process.env.JWT_SECRET || 'sdfsadfsdafdsfdsf',
       // Set JWT expiration (fallback to 1 hour if not set)
       signOptions: { expiresIn: process.env.JWT_EXPIRATION || '1h' },
     }),

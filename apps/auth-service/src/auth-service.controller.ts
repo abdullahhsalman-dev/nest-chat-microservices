@@ -43,7 +43,7 @@ export class AuthController {
   }
 
   @MessagePattern({ cmd: 'get_user' })
-  getUser(userId: string) {
+  async getUser({ userId }: { userId: string }) {
     // Delegate user retrieval logic to AuthService
     return this.authService.getUser(userId);
   }

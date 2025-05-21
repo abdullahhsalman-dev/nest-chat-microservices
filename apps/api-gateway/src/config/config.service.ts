@@ -81,7 +81,7 @@ export class ConfigService {
   }
 
   get jwtSecret(): string {
-    return this.getEnvVariable<string>('JWT_SECRET', 'secretKey');
+    return this.getEnvVariable<string>('JWT_SECRET', 'sdfsadfsdafdsfdsf');
   }
 
   get jwtExpiration(): string {

@@ -17,7 +17,7 @@ import {
   HttpException,
   HttpStatus,
   Inject,
-  UseGuards,
+  // UseGuards,
 } from '@nestjs/common';
 // Import ClientProxy for microservice communication
 import { ClientProxy } from '@nestjs/microservices';
@@ -33,7 +33,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 // Import JwtAuthGuard for protecting endpoints with JWT authentication
-import { JwtAuthGuard } from './jwt-auth.guard';
+// import { JwtAuthGuard } from './jwt-auth.guard';
 // Import DTOs for request/response validation
 import { CreateUserDto } from '../../../../libs/common/src/dto/create-user.dto';
 import { LoginUserDto } from '../../../../libs/common/src/dto/login-user.dto';
@@ -59,18 +59,6 @@ interface LoginResponse {
     id: string;
     username: string;
     email: string;
-  };
-}
-
-interface GetUserResponse {
-  success: boolean;
-  message?: string;
-  user?: {
-    id: string;
-    username: string;
-    email: string;
-    isOnline: boolean;
-    lastSeen: Date;
   };
 }
 
@@ -158,6 +146,8 @@ export class AuthController {
       );
     }
 
+    console.log('[API Gateway] Login response:', response); // ✅
+
     // Explicitly construct a LoginResponseDto-compatible object
     return {
       success: response.success,
@@ -171,7 +161,7 @@ export class AuthController {
   }
 
   // GET /auth/user/:userId: Retrieve user information by ID
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get user information by ID' })
@@ -193,12 +183,10 @@ export class AuthController {
     status: 401,
     description: 'Unauthorized - JWT token is missing or invalid',
   })
-  async getUser(@Param('userId') userId: string): Promise<GetUserResponse> {
-    const response = await firstValueFrom<GetUserResponse>(
-      this.authClient.send<GetUserResponse, string>(
-        { cmd: 'get_user' },
-        userId,
-      ),
+  async getUser(@Param('userId') userId: string): Promise<GetUserResponseDto> {
+    console.log('----------------------------------- getting in user/userid');
+    const response = await firstValueFrom<GetUserResponseDto>(
+      this.authClient.send({ cmd: 'get_user' }, { userId }),
     );
 
     if (!response.success) {

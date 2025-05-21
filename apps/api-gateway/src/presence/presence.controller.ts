@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Param,
-  UseGuards,
+  // UseGuards,
   HttpException,
   HttpStatus,
   Inject,
@@ -16,7 +16,7 @@ import {
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+// import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   UserStatusResponseDto,
   OnlineUsersResponseDto,
@@ -45,7 +45,7 @@ export class PresenceController {
     @Inject(SERVICES.PRESENCE_SERVICE) private presenceClient: ClientProxy,
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Get('users/:userId/status')
   @ApiOperation({ summary: 'Get online/offline status of a user' })
   @ApiParam({
@@ -98,7 +98,7 @@ export class PresenceController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Get('users/online')
   @ApiOperation({ summary: 'Get list of all online users' })
   @ApiResponse({
