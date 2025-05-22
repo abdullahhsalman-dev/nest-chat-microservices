@@ -22,9 +22,20 @@ async function bootstrap() {
 
   // Enable CORS to allow cross-origin requests
   app.enableCors({
-    origin: '*', // Adjust as needed
+    origin: 'http://localhost:4000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type, Authorization',
+    allowedHeaders: [
+      'Origin',
+      'X-Requested-With',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'Cookie',
+      'Set-Cookie',
+    ],
+    credentials: true,
+    exposedHeaders: ['Set-Cookie'],
+    optionsSuccessStatus: 200,
   });
   app.use(cookieParser());
 
