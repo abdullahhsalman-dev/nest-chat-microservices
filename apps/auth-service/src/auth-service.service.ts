@@ -12,13 +12,13 @@ import {
   SERVICES,
 } from '../../../libs/common/src/constants/microservices';
 import { AppException } from '../../../libs/common/src/exceptions/app.exception';
-interface JwtPayload {
-  sub: string; // Subject (user ID)
-  username: string; // Username
-  email: string; // Email
-  iat?: number; // Issued at timestamp
-  exp?: number; // Expiration timestamp
-}
+// interface JwtPayload {
+//   sub: string; // Subject (user ID)
+//   username: string; // Username
+//   email: string; // Email
+//   iat?: number; // Issued at timestamp
+//   exp?: number; // Expiration timestamp
+// }
 @Injectable()
 export class AuthService {
   constructor(
@@ -142,24 +142,45 @@ export class AuthService {
     }
   }
 
-  async validateToken(token: string) {
+  async validateToken(userId: string) {
+    // ✅ Change parameter from 'token' to 'userId'
+    console.log('🔍 [Auth Service] validateToken called with userId:', userId);
+
     try {
-      const payload = this.jwtService.verify<JwtPayload>(token);
-      const user = await this.userModel.findById(payload.sub);
+      // ✅ Remove JWT verification since API Gateway already did that
+      // ✅ Use userId directly to find user
+      const user = await this.userModel.findById(userId);
+
+      console.log(
+        '🔍 [Auth Service] User lookup result:',
+        user ? 'Found' : 'Not found',
+      );
 
       if (!user) {
-        return { success: false, message: 'User not found' };
+        console.log('❌ [Auth Service] User not found for ID:', userId);
+        return {
+          success: false,
+          message: 'User not found',
+        };
       }
+
+      console.log('✅ [Auth Service] User found:', {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      });
 
       return {
         success: true,
         user: {
-          id: user._id,
+          id: user._id.toString(), // ✅ Convert ObjectId to string
           username: user.username,
           email: user.email,
         },
       };
     } catch (error) {
+      console.log('💥 [Auth Service] validateToken error:', error);
+
       if (error instanceof AppException) {
         return {
           success: false,
@@ -172,7 +193,6 @@ export class AuthService {
           message: error.message,
         };
       } else {
-        // Handle cases where error is neither AppException nor Error
         return {
           success: false,
           message: 'An unknown error occurred',

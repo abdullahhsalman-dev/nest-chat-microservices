@@ -1,22 +1,13 @@
-// apps/api-gateway/src/auth/jwt.strategy.ts
-/**
- * JWT Strategy for Passport authentication in the API Gateway.
- * This file defines the JwtStrategy class, which extends PassportStrategy to handle
- * JSON Web Token (JWT) authentication. It extracts JWTs from the Authorization header,
- * verifies them using a secret key, and validates the token payload by communicating
- * with an authentication microservice. The strategy is used in conjunction with the
- * JwtAuthGuard to secure routes in the NestJS application.
- */
-
-import { Injectable, Inject } from '@nestjs/common';
+import { Request } from 'express';
+import { Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '../config/config.service';
 import { SERVICES } from '../../../../libs/common/src/constants/microservices';
 
-// Define the JWT payload interface
+// JWT Payload interface
 interface JwtPayload {
   sub: string;
   username: string;
@@ -25,7 +16,7 @@ interface JwtPayload {
   exp?: number;
 }
 
-// Define the validate token response interface
+// Auth Microservice validation response
 interface ValidateTokenResponse {
   success: boolean;
   message?: string;
@@ -36,42 +27,94 @@ interface ValidateTokenResponse {
   };
 }
 
-// Define the user object returned by validate method
+// What gets attached to `req.user`
 interface UserInfo {
   userId: string;
   username: string;
   email: string;
 }
 
-@Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    @Inject(SERVICES.AUTH_SERVICE) private authClient: ClientProxy,
-    private configService: ConfigService,
-  ) {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKey: configService.jwtSecret,
-    });
+const cookieExtractor = (req: Request): string | null => {
+  console.log('🍪 [cookieExtractor] All cookies:', req?.cookies);
+  console.log('🍪 [cookieExtractor] Headers:', req?.headers?.cookie);
+
+  const cookies = req?.cookies;
+
+  if (cookies && typeof cookies['access_token'] === 'string') {
+    console.log('✅ [cookieExtractor] Found access_token in cookies');
+    return cookies['access_token'];
   }
 
-  async validate(payload: JwtPayload): Promise<UserInfo> {
-    const response = await firstValueFrom<ValidateTokenResponse>(
-      this.authClient.send<ValidateTokenResponse, string>(
-        { cmd: 'validate_token' },
-        payload.sub,
-      ),
-    );
+  console.log('❌ [cookieExtractor] No access_token found in cookies');
+  return null;
+};
 
-    if (!response.success) {
-      throw new Error(response.message || 'Unauthorized');
+@Injectable()
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  constructor(
+    @Inject(SERVICES.AUTH_SERVICE)
+    private readonly authClient: ClientProxy,
+    private readonly configService: ConfigService,
+  ) {
+    super({
+      jwtFromRequest: cookieExtractor,
+      ignoreExpiration: false,
+      secretOrKey: configService.jwtSecret,
+      passReqToCallback: true,
+    });
+
+    console.log(
+      '🔧 [JwtStrategy] Initialized with secret:',
+      configService.jwtSecret ? 'SET' : 'NOT SET',
+    );
+  }
+
+  async validate(req: Request, payload: JwtPayload): Promise<UserInfo> {
+    console.log('🔍 [JwtStrategy validate] Called with payload:', payload);
+    console.log('🔍 [JwtStrategy validate] Request URL:', req.url);
+
+    if (!payload?.sub) {
+      console.log('❌ [JwtStrategy validate] Invalid payload - no sub');
+      throw new UnauthorizedException('Invalid token payload');
     }
 
-    return {
-      userId: payload.sub,
-      username: payload.username,
-      email: payload.email,
-    };
+    console.log('[JwtStrategy] Validating payload:', payload);
+
+    try {
+      const response = await firstValueFrom(
+        this.authClient.send<ValidateTokenResponse, string>(
+          { cmd: 'validate_token' },
+          payload.sub,
+        ),
+      );
+
+      console.log('🔍 [JwtStrategy validate] Auth service response:', response);
+
+      if (!response.success || !response.user) {
+        console.log(
+          '❌ [JwtStrategy validate] Validation failed:',
+          response.message,
+        );
+        throw new UnauthorizedException(
+          response.message || 'Token validation failed',
+        );
+      }
+
+      const userInfo = {
+        userId: response.user.id,
+        username: response.user.username,
+        email: response.user.email,
+      };
+
+      console.log(
+        '✅ [JwtStrategy validate] Success, returning user:',
+        userInfo,
+      );
+      return userInfo;
+    } catch (error) {
+      console.log('💥 [JwtStrategy validate] Error:', error);
+      throw new UnauthorizedException('Token validation failed');
+    }
   }
 }

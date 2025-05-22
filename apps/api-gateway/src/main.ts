@@ -12,6 +12,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 // Import the root module of the API Gateway
 import { AppModule } from './api-gateway.module';
+// import { NextFunction } from 'express';
+import cookieParser from 'cookie-parser';
 
 // Define the bootstrap function to initialize the application
 async function bootstrap() {
@@ -19,7 +21,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS to allow cross-origin requests
-  app.enableCors();
+  app.enableCors({
+    origin: '*', // Adjust as needed
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type, Authorization',
+  });
+  app.use(cookieParser());
+
   // Apply global validation pipe to validate incoming request data
   app.useGlobalPipes(new ValidationPipe());
 
@@ -56,6 +64,11 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   // Set up Swagger UI at /api endpoint
   SwaggerModule.setup('api', app, document);
+
+  // app.use((req: Request, res: Response, next: NextFunction) => {
+  //   console.log('🟡 Incoming Request Headers:', req.headers);
+  //   next();
+  // });
 
   // Start the server on port 3000
   await app.listen(3000);

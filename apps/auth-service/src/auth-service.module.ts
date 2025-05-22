@@ -31,6 +31,7 @@ import { SERVICES } from '../../../libs/common/src/constants/microservices';
     MongooseModule.forRoot(
       process.env.MONGODB_URI || 'mongodb://localhost:27017/chat-auth',
     ),
+
     // Register the User schema for Mongoose
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
     // Configure JwtModule for JWT generation and verification
@@ -38,7 +39,7 @@ import { SERVICES } from '../../../libs/common/src/constants/microservices';
       // Set the JWT secret (fallback to 'secretKey' if not set)
       secret: process.env.JWT_SECRET || 'sdfsadfsdafdsfdsf',
       // Set JWT expiration (fallback to 1 hour if not set)
-      signOptions: { expiresIn: process.env.JWT_EXPIRATION || '1h' },
+      signOptions: { expiresIn: process.env.JWT_EXPIRATION || '24h' },
     }),
     // Configure microservice clients for PRESENCE_SERVICE and NOTIFICATION_SERVICE
     ClientsModule.register([

@@ -85,6 +85,6 @@ export class ConfigService {
   }
 
   get jwtExpiration(): string {
-    return this.getEnvVariable<string>('JWT_EXPIRATION', '3600');
+    return this.getEnvVariable<string>('JWT_EXPIRATION', '24h');
   }
 }

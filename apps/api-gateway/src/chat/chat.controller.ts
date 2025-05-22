@@ -5,7 +5,7 @@ import {
   Post,
   Body,
   Param,
-  // UseGuards,
+  UseGuards,
   Request,
   HttpException,
   HttpStatus,
@@ -23,7 +23,7 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-// import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateMessageDto } from '../../../../libs/common/src/dto/create-message.dto';
 import {
   SendMessageResponseDto,
@@ -75,7 +75,7 @@ export class ChatController {
 
   // JWT Authentication: All endpoints are protected by @UseGuards(JwtAuthGuard)
   // and @ApiBearerAuth('JWT-auth'), requiring valid JWT tokens
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('messages')
   @ApiOperation({ summary: 'Send a new message to another user' })
   @ApiBody({ type: CreateMessageDto })
@@ -115,7 +115,7 @@ export class ChatController {
     return response;
   }
 
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('conversations/:userId')
   @ApiOperation({ summary: 'Get conversation history with another user' })
   @ApiParam({
@@ -157,7 +157,7 @@ export class ChatController {
     return response;
   }
 
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('conversations')
   @ApiOperation({ summary: 'Get recent conversations with all users' })
   @ApiResponse({
@@ -189,7 +189,7 @@ export class ChatController {
     return response;
   }
 
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('messages/:messageId/read')
   @ApiOperation({ summary: 'Mark a message as read' })
   @ApiParam({

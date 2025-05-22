@@ -1,40 +1,27 @@
-/**
- * Authentication Controller for the API Gateway.
- * This controller handles authentication-related HTTP requests in the API Gateway.
- * It exposes endpoints for user registration, login, and user retrieval. Requests
- * are forwarded to the AuthService microservice via the ClientProxy to handle the
- * actual authentication logic. The controller also manages error handling and
- * returns appropriate responses.
- */
+import { Response } from 'express'; // Add this at the top
 
-// Import necessary NestJS decorators and modules
 import {
   Controller,
   Post,
   Get,
-  Param,
   Body,
   HttpException,
   HttpStatus,
   Inject,
-  // UseGuards,
+  UseGuards,
+  Request,
+  Res,
 } from '@nestjs/common';
-// Import ClientProxy for microservice communication
 import { ClientProxy } from '@nestjs/microservices';
-// Import firstValueFrom to convert RxJS Observables to Promises
 import { firstValueFrom } from 'rxjs';
-// Import Swagger decorators for API documentation
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBody,
-  ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-// Import JwtAuthGuard for protecting endpoints with JWT authentication
-// import { JwtAuthGuard } from './jwt-auth.guard';
-// Import DTOs for request/response validation
+import { JwtAuthGuard } from './jwt-auth.guard';
 import { CreateUserDto } from '../../../../libs/common/src/dto/create-user.dto';
 import { LoginUserDto } from '../../../../libs/common/src/dto/login-user.dto';
 import {
@@ -42,10 +29,8 @@ import {
   LoginResponseDto,
   GetUserResponseDto,
 } from '../../../../libs/common/src/dto/responses/auth-responses.dto';
-// Import microservice constants
 import { SERVICES } from '../../../../libs/common/src/constants/microservices';
 
-// Define response interfaces for type safety
 interface RegisterResponse {
   success: boolean;
   message: string;
@@ -62,15 +47,19 @@ interface LoginResponse {
   };
 }
 
-// Swagger Tag: Groups endpoints under "auth" in Swagger documentation
-// Controller: Handles requests under the /auth base path
+interface RequestWithUser extends Request {
+  user: {
+    userId: string;
+    username: string;
+    email: string;
+  };
+}
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  // Inject ClientProxy for communicating with the AuthService microservice
   constructor(@Inject(SERVICES.AUTH_SERVICE) private authClient: ClientProxy) {}
 
-  // POST /auth/register: Register a new user
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiBody({ type: CreateUserDto })
@@ -103,7 +92,6 @@ export class AuthController {
     return response;
   }
 
-  // POST /auth/login: Authenticate user and return JWT token
   @Post('login')
   @ApiOperation({ summary: 'Authenticate user and get token' })
   @ApiBody({ type: LoginUserDto })
@@ -116,7 +104,10 @@ export class AuthController {
     status: 401,
     description: 'Unauthorized - Invalid credentials',
   })
-  async login(@Body() loginUserDto: LoginUserDto): Promise<LoginResponseDto> {
+  async login(
+    @Body() loginUserDto: LoginUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponseDto> {
     const response = await firstValueFrom<LoginResponse>(
       this.authClient.send<LoginResponse, LoginUserDto>(
         { cmd: 'login' },
@@ -124,31 +115,23 @@ export class AuthController {
       ),
     );
 
-    if (!response.success) {
+    if (!response.success || !response.access_token || !response.user) {
       throw new HttpException(
         response.message || 'Authentication failed',
         HttpStatus.UNAUTHORIZED,
       );
     }
 
-    if (!response.access_token) {
-      throw new HttpException(
-        'Access token missing in response',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    // ✅ Set JWT as an HTTP-only cookie
+    res.cookie('access_token', response.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // set to true in production
+      sameSite: 'strict',
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+    });
 
-    // Ensure user is present if required by LoginResponseDto
-    if (!response.user) {
-      throw new HttpException(
-        'User data missing in response',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    console.log('[API Gateway] Login response:', response);
 
-    console.log('[API Gateway] Login response:', response); // ✅
-
-    // Explicitly construct a LoginResponseDto-compatible object
     return {
       success: response.success,
       access_token: response.access_token,
@@ -160,15 +143,11 @@ export class AuthController {
     };
   }
 
-  // GET /auth/user/:userId: Retrieve user information by ID
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @Get('user/:userId')
-  @ApiOperation({ summary: 'Get user information by ID' })
-  @ApiParam({
-    name: 'userId',
-    description: 'ID of the user to retrieve',
-    type: String,
+  @Get('user/me')
+  @ApiOperation({
+    summary: 'Get information of the currently authenticated user',
   })
   @ApiResponse({
     status: 200,
@@ -176,15 +155,12 @@ export class AuthController {
     type: GetUserResponseDto,
   })
   @ApiResponse({
-    status: 400,
-    description: 'Bad Request - User not found or invalid ID',
-  })
-  @ApiResponse({
     status: 401,
     description: 'Unauthorized - JWT token is missing or invalid',
   })
-  async getUser(@Param('userId') userId: string): Promise<GetUserResponseDto> {
-    console.log('----------------------------------- getting in user/userid');
+  async getMe(@Request() req: RequestWithUser): Promise<GetUserResponseDto> {
+    const { userId } = req.user;
+
     const response = await firstValueFrom<GetUserResponseDto>(
       this.authClient.send({ cmd: 'get_user' }, { userId }),
     );
