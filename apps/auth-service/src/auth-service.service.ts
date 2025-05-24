@@ -238,4 +238,43 @@ export class AuthService {
       }
     }
   }
+
+  async getUsers(
+    userIds: string[],
+  ): Promise<{ success: boolean; users: User[]; message?: string }> {
+    try {
+      const users = await this.userModel
+        .find({ _id: { $in: userIds } })
+        .select('_id username email isOnline lastSeen')
+        .exec();
+
+      const userData: User[] = users.map((user) => ({
+        id: user._id.toString(),
+        username: user.username || 'Unknown',
+        email: user.email || '',
+        password: '',
+        isOnline: user.isOnline ?? false,
+        lastSeen: user.lastSeen ?? new Date(),
+      }));
+
+      return { success: true, users: userData };
+    } catch (error) {
+      console.log('💥 [Auth Service] getUsers error:', error);
+      if (error instanceof AppException) {
+        return {
+          success: false,
+          users: [],
+          message: error.message,
+        };
+      } else if (error instanceof Error) {
+        return { success: false, users: [], message: error.message };
+      } else {
+        return {
+          success: false,
+          users: [],
+          message: 'An unknown error occurred',
+        };
+      }
+    }
+  }
 }

@@ -257,6 +257,6 @@ The API Gateway's auth folder primarily acts as a client-facing façade that del
 - Run the startup script:
 - bash./startup.sh
 
-docker-compose -f docker-compose.yml -f docker-compose override.yml up --build
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build
 
 docker-compose logs --tail=100 api-gateway

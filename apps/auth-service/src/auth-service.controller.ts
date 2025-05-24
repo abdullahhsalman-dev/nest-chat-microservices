@@ -47,4 +47,9 @@ export class AuthController {
     // Delegate user retrieval logic to AuthService
     return this.authService.getUser(userId);
   }
+
+  @MessagePattern({ cmd: 'get_users' })
+  async getUsers(userIds: string[]) {
+    return this.authService.getUsers(userIds);
+  }
 }

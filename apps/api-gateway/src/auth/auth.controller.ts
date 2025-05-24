@@ -1,5 +1,4 @@
-import { Response } from 'express'; // Add this at the top
-
+import { Response } from 'express';
 import {
   Controller,
   Post,
@@ -45,6 +44,18 @@ interface LoginResponse {
     username: string;
     email: string;
   };
+}
+
+interface GetUsersResponse {
+  success: boolean;
+  users: Array<{
+    id: string;
+    username: string;
+    email: string;
+    isOnline: boolean;
+    lastSeen: Date;
+  }>;
+  message?: string;
 }
 
 interface RequestWithUser extends Request {
@@ -122,10 +133,9 @@ export class AuthController {
       );
     }
 
-    // ✅ Set JWT as an HTTP-only cookie
     res.cookie('access_token', response.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // set to true in production
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 1000 * 60 * 60 * 24, // 1 day
     });
@@ -168,6 +178,81 @@ export class AuthController {
     if (!response.success) {
       throw new HttpException(
         response.message || 'Failed to retrieve user',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return response;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @Post('users')
+  @ApiOperation({
+    summary: 'Get information of multiple users by their IDs',
+  })
+  @ApiBody({
+    description: 'Array of user IDs',
+    schema: {
+      type: 'object',
+      properties: {
+        userIds: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['682104ab3a73b39778831583', 'anotherUserId'],
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Users retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        users: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              username: { type: 'string' },
+              email: { type: 'string' },
+              isOnline: { type: 'boolean' },
+              lastSeen: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+        message: { type: 'string', nullable: true },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid user IDs',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token is missing or invalid',
+  })
+  async getUsers(
+    @Body('userIds') userIds: string[],
+  ): Promise<GetUsersResponse> {
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      throw new HttpException(
+        'Invalid or empty user IDs',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const response = await firstValueFrom<GetUsersResponse>(
+      this.authClient.send({ cmd: 'get_users' }, userIds),
+    );
+
+    if (!response.success) {
+      throw new HttpException(
+        response.message || 'Failed to retrieve users',
         HttpStatus.BAD_REQUEST,
       );
     }

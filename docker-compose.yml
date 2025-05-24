@@ -16,6 +16,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   # Redis service for caching and presence
   redis:
@@ -29,6 +35,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   # API Gateway service
   api-gateway:
@@ -38,6 +50,10 @@ services:
     ports:
       - '3000:3000'
     depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
       auth-service:
         condition: service_healthy
       chat-service:
@@ -51,6 +67,7 @@ services:
     env_file:
       - .env
     environment:
+      - JWT_SECRET=sdfsadfsdafdsfdsf
       - AUTH_SERVICE_HOST=auth-service
       - AUTH_SERVICE_PORT=3001
       - CHAT_SERVICE_HOST=chat-service
@@ -59,6 +76,17 @@ services:
       - PRESENCE_SERVICE_PORT=3002
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   # Authentication service
   auth-service:
@@ -71,12 +99,13 @@ services:
       - '3101:3101' # HTTP port for health checks
     depends_on:
       mongodb:
-        condition: service_started
+        condition: service_healthy
     networks:
       - chat-network
     env_file:
       - .env
     environment:
+      - JWT_SECRET=sdfsadfsdafdsfdsf
       - MONGODB_URI=mongodb://mongodb:27017/chat-auth
       - PRESENCE_SERVICE_HOST=presence-service
       - PRESENCE_SERVICE_PORT=3002
@@ -88,6 +117,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   # Chat service
   chat-service:
@@ -95,7 +129,7 @@ services:
       context: .
       dockerfile: ./apps/chat-service/Dockerfile
     ports:
-      - '3013:3003' # Expose chat service port
+      - '3013:3003' # TCP microservice port
       - '3103:3103' # HTTP port for health checks
     depends_on:
       mongodb:
@@ -105,7 +139,10 @@ services:
     env_file:
       - .env
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/chat-messages
+      - JWT_SECRET=sdfsadfsdafdsfdsf
+      - MONGODB_URI=mongodb://mongodb:27017/chat-auth
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_PORT=3001
       - NOTIFICATION_SERVICE_HOST=notification-service
       - NOTIFICATION_SERVICE_PORT=3004
     healthcheck:
@@ -114,6 +151,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   # Presence service
   presence-service:
@@ -122,7 +164,7 @@ services:
       context: .
       dockerfile: ./apps/presence-service/Dockerfile
     ports:
-      - '3012:3002' # Expose presence service port
+      - '3012:3002' # TCP microservice port
       - '3102:3102' # HTTP port for health checks
     depends_on:
       redis:
@@ -142,6 +184,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   # Notification service
   notification-service:
@@ -152,16 +199,27 @@ services:
       - '3004:3004' # TCP microservice port
       - '3005:3005' # WebSocket port
       - '3104:3104' # HTTP port for health checks
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - chat-network
     env_file:
       - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     healthcheck:
       test: ['CMD', 'wget', '--spider', 'http://localhost:3104/health']
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
 
 networks:
   chat-network:
