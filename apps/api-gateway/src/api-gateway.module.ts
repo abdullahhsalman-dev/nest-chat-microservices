@@ -1,10 +1,15 @@
+// apps/api-gateway/src/app.module.ts
 import { Module } from '@nestjs/common';
-import { ApiGatewayController } from './api-gateway.controller';
-import { ApiGatewayService } from './api-gateway.service';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { ChatModule } from './chat/chat.module';
+import { PresenceModule } from './presence/presence.module';
+import { ConfigModule } from './config/config.module';
 
 @Module({
-  imports: [],
-  controllers: [ApiGatewayController],
-  providers: [ApiGatewayService],
+  imports: [ConfigModule, AuthModule, ChatModule, PresenceModule],
+  controllers: [AppController],
+  providers: [AppService],
 })
-export class ApiGatewayModule {}
+export class AppModule {}

@@ -1,8 +1,31 @@
+// apps/chat-service/src/main.ts
 import { NestFactory } from '@nestjs/core';
-import { ChatServiceModule } from './chat-service.module';
+import { Transport } from '@nestjs/microservices';
+import { ChatModule } from './chat-service.module';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(ChatServiceModule);
-  await app.listen(process.env.port ?? 3000);
+  const logger = new Logger('ChatService');
+
+  // Create hybrid application that can handle both HTTP and microservice protocols
+  const app = await NestFactory.create(ChatModule);
+
+  // Configure microservice transport
+  app.connectMicroservice({
+    transport: Transport.TCP,
+    options: {
+      host: '0.0.0.0', // Listen on all interfaces
+      // host: process.env.CHAT_SERVICE_HOST || 'localhost',
+      port: parseInt(process.env.CHAT_SERVICE_PORT || '3001', 10),
+    },
+  });
+
+  // Start both HTTP and microservice servers
+  await app.startAllMicroservices();
+  await app.listen(3103);
+
+  logger.log(
+    `Chat service is listening on microservice transport and HTTP port 3003`,
+  );
 }
 bootstrap();

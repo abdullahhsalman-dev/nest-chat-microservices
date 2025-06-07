@@ -1,0 +1,229 @@
+version: '3'
+
+services:
+  # MongoDB service for persistent data storage
+  mongodb:
+    restart: unless-stopped
+    image: mongo:latest
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - chat-network
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # Redis service for caching and presence
+  redis:
+    image: redis:latest
+    ports:
+      - '6380:6379'
+    networks:
+      - chat-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # API Gateway service
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+    ports:
+      - '3000:3000'
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+      presence-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    networks:
+      - chat-network
+    env_file:
+      - .env
+    environment:
+      - JWT_SECRET=sdfsadfsdafdsfdsf
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_PORT=3001
+      - CHAT_SERVICE_HOST=chat-service
+      - CHAT_SERVICE_PORT=3003
+      - PRESENCE_SERVICE_HOST=presence-service
+      - PRESENCE_SERVICE_PORT=3002
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=3004
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # Authentication service
+  auth-service:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./apps/auth-service/Dockerfile
+    ports:
+      - '3001:3001' # TCP microservice port
+      - '3101:3101' # HTTP port for health checks
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - chat-network
+    env_file:
+      - .env
+    environment:
+      - JWT_SECRET=sdfsadfsdafdsfdsf
+      - MONGODB_URI=mongodb://mongodb:27017/chat-auth
+      - PRESENCE_SERVICE_HOST=presence-service
+      - PRESENCE_SERVICE_PORT=3002
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=3004
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3101/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # Chat service
+  chat-service:
+    build:
+      context: .
+      dockerfile: ./apps/chat-service/Dockerfile
+    ports:
+      - '3013:3003' # TCP microservice port
+      - '3103:3103' # HTTP port for health checks
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - chat-network
+    env_file:
+      - .env
+    environment:
+      - JWT_SECRET=sdfsadfsdafdsfdsf
+      - MONGODB_URI=mongodb://mongodb:27017/chat-auth
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_PORT=3001
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=3004
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3103/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # Presence service
+  presence-service:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./apps/presence-service/Dockerfile
+    ports:
+      - '3012:3002' # TCP microservice port
+      - '3102:3102' # HTTP port for health checks
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - chat-network
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=3004
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3102/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # Notification service
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./apps/notification-service/Dockerfile
+    ports:
+      - '3004:3004' # TCP microservice port
+      - '3005:3005' # WebSocket port
+      - '3104:3104' # HTTP port for health checks
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - chat-network
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', 'http://localhost:3104/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+networks:
+  chat-network:
+    driver: bridge
+
+volumes:
+  mongo_data:

@@ -1,12 +1,28 @@
-import { Controller, Get } from '@nestjs/common';
-import { NotificationServiceService } from './notification-service.service';
+import { Controller } from '@nestjs/common';
+import { EventPattern } from '@nestjs/microservices';
+import { NotificationService } from './notification-service.service';
+import { EVENTS } from '../../../libs/common/src/constants/microservices';
 
 @Controller()
-export class NotificationServiceController {
-  constructor(private readonly notificationServiceService: NotificationServiceService) {}
+export class NotificationController {
+  constructor(private readonly notificationService: NotificationService) {}
 
-  @Get()
-  getHello(): string {
-    return this.notificationServiceService.getHello();
+  @EventPattern(EVENTS.MESSAGE_CREATED)
+  handleMessageCreated(data: {
+    messageId: string;
+    senderId: string;
+    receiverId: string;
+    content: string;
+  }) {
+    return this.notificationService.sendMessageNotification(data);
+  }
+
+  @EventPattern(EVENTS.USER_PRESENCE_CHANGED)
+  handleUserPresenceChanged(data: {
+    userId: string;
+    username?: string;
+    status: 'online' | 'offline';
+  }) {
+    return this.notificationService.sendPresenceNotification(data);
   }
 }

@@ -1,8 +1,8 @@
 export const SERVICES = {
-  AUTH_SERVICE: 'AUTH_SERVICE',
-  CHAT_SERVICE: 'CHAT_SERVICE',
-  PRESENCE_SERVICE: 'PRESENCE_SERVICE',
-  NOTIFICATION_SERVICE: 'NOTIFICATION_SERVICE',
+  AUTH_SERVICE: 'auth_service',
+  CHAT_SERVICE: 'chat_service',
+  PRESENCE_SERVICE: 'presence_service',
+  NOTIFICATION_SERVICE: 'notification_service',
 };
 
 export const EVENTS = {
