@@ -130,8 +130,10 @@ export class ChatService {
 
       // Fetch user data from auth-service
       const userResponse = await firstValueFrom<GetUsersResponse>(
-        this.authClient.send({ cmd: 'get_users' }, [userId, otherUserId]),
+        this.authClient.send({ cmd: 'get_users' }, [userId]),
       );
+
+      console.log('User response:', userResponse);
 
       if (!userResponse.success) {
         throw new AppException('Failed to fetch users', 'USER_FETCH_FAILED');

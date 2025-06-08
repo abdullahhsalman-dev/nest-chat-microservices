@@ -186,54 +186,53 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
-@ApiBearerAuth('JWT-auth')
-@Get('users')
-@ApiOperation({
-  summary: 'Get all users except the currently logged-in user',
-})
-@ApiResponse({
-  status: 200,
-  description: 'Users retrieved successfully',
-  schema: {
-    type: 'object',
-    properties: {
-      success: { type: 'boolean' },
-      users: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            username: { type: 'string' },
-            email: { type: 'string' },
-            isOnline: { type: 'boolean' },
-            lastSeen: { type: 'string', format: 'date-time' },
+  @ApiBearerAuth('JWT-auth')
+  @Get('users')
+  @ApiOperation({
+    summary: 'Get all users except the currently logged-in user',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Users retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        users: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              username: { type: 'string' },
+              email: { type: 'string' },
+              isOnline: { type: 'boolean' },
+              lastSeen: { type: 'string', format: 'date-time' },
+            },
           },
         },
+        message: { type: 'string', nullable: true },
       },
-      message: { type: 'string', nullable: true },
     },
-  },
-})
-@ApiResponse({
-  status: 401,
-  description: 'Unauthorized - JWT token is missing or invalid',
-})
-async getUsers(@Request() req: Request): Promise<GetUsersResponse> {
-  const { userId } = req.user as { userId: string };
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token is missing or invalid',
+  })
+  async getUsers(@Request() req: Request): Promise<GetUsersResponse> {
+    const { userId } = req.user;
 
-  const response = await firstValueFrom<GetUsersResponse>(
-    this.authClient.send({ cmd: 'get_users' }, userId),
-  );
-
-  if (!response.success) {
-    throw new HttpException(
-      response.message || 'Failed to retrieve users',
-      HttpStatus.BAD_REQUEST,
+    const response = await firstValueFrom<GetUsersResponse>(
+      this.authClient.send({ cmd: 'get_users' }, userId),
     );
+
+    if (!response.success) {
+      throw new HttpException(
+        response.message || 'Failed to retrieve users',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return response;
   }
-
-  return response;
-}
-
 }
