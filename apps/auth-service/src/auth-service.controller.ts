@@ -49,7 +49,7 @@ export class AuthController {
   }
 
   @MessagePattern({ cmd: 'get_users' })
-  async getUsers(userIds: string[]) {
-    return this.authService.getUsers(userIds);
+  async getUsers(userId: string) {
+    return this.authService.getUsers(userId);
   }
 }

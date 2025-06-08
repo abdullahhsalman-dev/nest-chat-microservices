@@ -186,77 +186,54 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @Post('users')
-  @ApiOperation({
-    summary: 'Get information of multiple users by their IDs',
-  })
-  @ApiBody({
-    description: 'Array of user IDs',
-    schema: {
-      type: 'object',
-      properties: {
-        userIds: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['682104ab3a73b39778831583', 'anotherUserId'],
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Users retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        users: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              username: { type: 'string' },
-              email: { type: 'string' },
-              isOnline: { type: 'boolean' },
-              lastSeen: { type: 'string', format: 'date-time' },
-            },
+@ApiBearerAuth('JWT-auth')
+@Get('users')
+@ApiOperation({
+  summary: 'Get all users except the currently logged-in user',
+})
+@ApiResponse({
+  status: 200,
+  description: 'Users retrieved successfully',
+  schema: {
+    type: 'object',
+    properties: {
+      success: { type: 'boolean' },
+      users: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            username: { type: 'string' },
+            email: { type: 'string' },
+            isOnline: { type: 'boolean' },
+            lastSeen: { type: 'string', format: 'date-time' },
           },
         },
-        message: { type: 'string', nullable: true },
       },
+      message: { type: 'string', nullable: true },
     },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid user IDs',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - JWT token is missing or invalid',
-  })
-  async getUsers(
-    @Body('userIds') userIds: string[],
-  ): Promise<GetUsersResponse> {
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      throw new HttpException(
-        'Invalid or empty user IDs',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  },
+})
+@ApiResponse({
+  status: 401,
+  description: 'Unauthorized - JWT token is missing or invalid',
+})
+async getUsers(@Request() req: Request): Promise<GetUsersResponse> {
+  const { userId } = req.user as { userId: string };
 
-    const response = await firstValueFrom<GetUsersResponse>(
-      this.authClient.send({ cmd: 'get_users' }, userIds),
+  const response = await firstValueFrom<GetUsersResponse>(
+    this.authClient.send({ cmd: 'get_users' }, userId),
+  );
+
+  if (!response.success) {
+    throw new HttpException(
+      response.message || 'Failed to retrieve users',
+      HttpStatus.BAD_REQUEST,
     );
-
-    if (!response.success) {
-      throw new HttpException(
-        response.message || 'Failed to retrieve users',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    return response;
   }
+
+  return response;
+}
+
 }
