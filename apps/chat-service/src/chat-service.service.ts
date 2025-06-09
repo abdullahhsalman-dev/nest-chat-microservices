@@ -175,9 +175,9 @@ export class ChatService {
         .sort({ timestamp: -1 })
         .exec();
 
-      // console.log(
-      //   `Processing message: ${JSON.stringify(messages[0])},  partner:`,
-      // );
+      console.log(
+        `Processing message: ${JSON.stringify(messages[0])},  partner:`,
+      );
 
       const conversationsMap = new Map<string, RecentConversation>();
       const userIds = new Set<string>();
@@ -214,10 +214,10 @@ export class ChatService {
 
       // Fetch user data from auth-service
       const userResponse = await firstValueFrom<GetUsersResponse>(
-        this.authClient.send({ cmd: 'get_users' }, Array.from(userIds)),
+        this.authClient.send({ cmd: 'get_users' }, [userId]),
       );
 
-      // console.log('userResponse:', JSON.stringify(conversationsMap, null, 2));
+      console.log('userResponse:', userResponse.users);
 
       if (!userResponse.success) {
         throw new AppException('Failed to fetch users', 'USER_FETCH_FAILED');
@@ -230,13 +230,24 @@ export class ChatService {
           } else {
             console.warn(`Incomplete user data for ID ${user.id}:`, user);
           }
+
           return map;
         },
         {},
       );
 
+      console.log(
+        `Fetched ${Object.keys(usersMap).length} users for recent conversations`,
+        usersMap,
+      );
+
       for (const [partnerId, convo] of conversationsMap.entries()) {
-        const user = usersMap[userId];
+        const user = usersMap[partnerId];
+
+        console.log(
+          `Processing conversation for partner ID ${partnerId}:`,
+          user ? JSON.stringify(user) : 'User not found',
+        );
 
         if (user && user.username && user.email) {
           convo.user = user;
