@@ -175,6 +175,10 @@ export class ChatService {
         .sort({ timestamp: -1 })
         .exec();
 
+      // console.log(
+      //   `Processing message: ${JSON.stringify(messages[0])},  partner:`,
+      // );
+
       const conversationsMap = new Map<string, RecentConversation>();
       const userIds = new Set<string>();
 
@@ -184,7 +188,10 @@ export class ChatService {
         const userIdStr = userId;
 
         const partnerId =
-          senderIdStr === userIdStr ? receiverIdStr : senderIdStr;
+          receiverIdStr === userIdStr ? senderIdStr : receiverIdStr;
+        // console.log(
+        //   `Processing message: ${JSON.stringify(messages)},  partner: ${partnerId}`,
+        // );
 
         if (!conversationsMap.has(partnerId)) {
           conversationsMap.set(partnerId, {
@@ -194,7 +201,6 @@ export class ChatService {
               email: '',
               isOnline: false,
               lastSeen: new Date(),
-              // include other optional user fields with default values or mark optional in User interface
             } as User,
             lastMessage: message,
             unreadCount: receiverIdStr === userIdStr && !message.read ? 1 : 0,
@@ -211,26 +217,39 @@ export class ChatService {
         this.authClient.send({ cmd: 'get_users' }, Array.from(userIds)),
       );
 
+      // console.log('userResponse:', JSON.stringify(conversationsMap, null, 2));
+
       if (!userResponse.success) {
         throw new AppException('Failed to fetch users', 'USER_FETCH_FAILED');
       }
 
       const usersMap: Record<string, User> = userResponse.users.reduce(
         (map: Record<string, User>, user: User) => {
-          map[user.id] = user;
+          if (user.id && user.username && user.email) {
+            map[user.id] = user;
+          } else {
+            console.warn(`Incomplete user data for ID ${user.id}:`, user);
+          }
           return map;
         },
         {},
       );
 
       for (const [partnerId, convo] of conversationsMap.entries()) {
-        convo.user = usersMap[partnerId] || convo.user;
+        const user = usersMap[userId];
+
+        if (user && user.username && user.email) {
+          convo.user = user;
+        } else {
+          console.warn(`User data missing or incomplete for ID ${partnerId}`);
+          // Skip conversations with missing users
+          conversationsMap.delete(partnerId);
+        }
       }
 
       return {
         success: true,
         conversations: Array.from(conversationsMap.values()),
-        users: usersMap,
       };
     } catch (error) {
       if (error instanceof AppException) {
