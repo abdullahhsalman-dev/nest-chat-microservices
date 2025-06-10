@@ -55,3 +55,15 @@ services:
     environment:
       - NODE_ENV=development
     command: sh -c "npm run start:dev notification-service"
+# The provided Dockerfile.dev and docker-compose.override.yml configure a development environment for a Node.js microservices-based application,
+# enabling hot reloading to display logs on every code change. The Dockerfile.dev uses a lightweight Node.js 20 Alpine image,
+# sets up the working directory, installs dependencies, and includes a wait-for-it.sh script to ensure services
+# start only when dependencies are ready.
+# The docker-compose.override.yml defines five microservices (api-gateway, auth-service, chat-service, presence-service, notification-service),
+# each built using the same Dockerfile.dev. By mounting the local codebase as a volume (.:/app) and excluding node_modules,
+#  changes to the source code are instantly reflected in the containers.
+# The npm run start:dev command, tailored for each service, runs a development server (likely using a tool like Nodemon or Webpack)
+# that watches for file changes, automatically restarts the service, and outputs updated logs to the console,
+#  providing real-time feedback during development.
+# The wait-for-it.sh script ensures services wait for dependencies (e.g., databases or other services) before starting, preventing errors and
+# ensuring logs reflect a stable, running state.
